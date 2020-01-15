@@ -83,11 +83,6 @@ def test_analyze_attributes_modifying_objects(capsys, cursor, attributes_source_
     expected.add(attr.Q_ALTER_ROLE.format(ROLE2, 'SUPERUSER'))
     expected.add(attr.Q_CREATE_ROLE.format(ROLE3))
 
-    if attributes_source_table == 'pg_roles':
-        # pg_roles masks the user's password, so the password change
-        # logic is always activated (for existing users)
-        expected.add('--' + attr.Q_ALTER_PASSWORD.format(ROLE1, '******'))
-
     actual, password_changed = attr.analyze_attributes(spec, cursor, verbose=False, attributes_source_table=attributes_source_table)
     # Filter out changes for roles that existed before this test
     actual = set([s for s in actual if ('postgres' not in s and 'test_user' not in s)])

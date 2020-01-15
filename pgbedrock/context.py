@@ -233,6 +233,11 @@ PRIVILEGE_MAP = {
          },
 }
 
+# the pg_authid catalog requires superuser privileges to access, the pg_roles view does not
+# https://www.postgresql.org/docs/current/catalog-pg-authid.html
+ATTRIBUTES_TABLE_SUPERUSER = 'pg_authid'
+ATTRIBUTES_TABLE_NONSUPERUSER = 'pg_roles'
+
 ObjectInfo = namedtuple('ObjectInfo', ['kind', 'objname', 'owner', 'is_dependent'])
 ObjectAttributes = namedtuple('ObjectAttributes',
                               ['kind', 'schema', 'objname', 'owner', 'is_dependent'])
@@ -256,11 +261,17 @@ class DatabaseContext(object):
         'get_version_info',
     }
 
-    def __init__(self, cursor, verbose, attributes_source_table='pg_authid'):
+    def __init__(self, cursor, verbose, attributes_source_table=ATTRIBUTES_TABLE_SUPERUSER):
         self.cursor = cursor
         self.verbose = verbose
         self._cache = dict()
         self._attributes_source_table = attributes_source_table
+
+        if attributes_source_table == ATTRIBUTES_TABLE_SUPERUSER:
+            # we should be able to read password values and manage them
+            self.manage_passwords = True
+        else:
+            self.manage_passwords = False
 
     def __getattribute__(self, attr):
         """ If the requested attribute should be cached and hasn't, fetch it and cache it. """
