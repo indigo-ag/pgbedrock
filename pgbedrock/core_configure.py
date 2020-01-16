@@ -119,7 +119,7 @@ def configure(spec_path, host, port, user, password, dbname, prompt, attributes,
     db_connection = common.get_db_connection(host, port, dbname, user, password)
     cursor = db_connection.cursor(cursor_factory=psycopg2.extras.DictCursor)
 
-    spec = load_spec(spec_path, cursor, verbose, attributes, memberships, ownerships, privileges)
+    spec = load_spec(spec_path, cursor, verbose, attributes, memberships, ownerships, privileges, attributes_source_table)
 
     sql_to_run = []
     password_changed = False  # Initialize this in case the attributes module isn't run
@@ -138,19 +138,19 @@ def configure(spec_path, host, port, user, password, dbname, prompt, attributes,
 
     if memberships:
         sql_to_run.append(create_divider('memberships'))
-        module_sql = analyze_memberships(spec, cursor, verbose)
+        module_sql = analyze_memberships(spec, cursor, verbose, attributes_source_table)
         run_module_sql(module_sql, cursor, verbose)
         sql_to_run.extend(module_sql)
 
     if ownerships:
         sql_to_run.append(create_divider('ownerships'))
-        module_sql = analyze_ownerships(spec, cursor, verbose)
+        module_sql = analyze_ownerships(spec, cursor, verbose, attributes_source_table)
         run_module_sql(module_sql, cursor, verbose)
         sql_to_run.extend(module_sql)
 
     if privileges:
         sql_to_run.append(create_divider('privileges'))
-        module_sql = analyze_privileges(spec, cursor, verbose)
+        module_sql = analyze_privileges(spec, cursor, verbose, attributes_source_table)
         run_module_sql(module_sql, cursor, verbose)
         sql_to_run.extend(module_sql)
 

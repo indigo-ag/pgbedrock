@@ -261,7 +261,7 @@ class DatabaseContext(object):
         'get_version_info',
     }
 
-    def __init__(self, cursor, verbose, attributes_source_table=ATTRIBUTES_TABLE_SUPERUSER):
+    def __init__(self, cursor, verbose, attributes_source_table):
         self.cursor = cursor
         self.verbose = verbose
         self._cache = dict()
