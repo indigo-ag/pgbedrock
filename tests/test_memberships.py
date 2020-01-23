@@ -1,6 +1,7 @@
 from conftest import run_setup_sql
 from pgbedrock import memberships as memb
 from pgbedrock import attributes
+from pgbedrock.context import ATTRIBUTES_TABLE_SUPERUSER
 
 
 ROLE1 = 'charlie'
@@ -45,7 +46,7 @@ def test_analyze_memberships(cursor):
         memb.Q_REVOKE_MEMBERSHIP.format(CURRENT_GROUP1, ROLE3),
     ])
 
-    actual = memb.analyze_memberships(spec, cursor, verbose=False)
+    actual = memb.analyze_memberships(spec, cursor, False, ATTRIBUTES_TABLE_SUPERUSER)
     assert set(actual) == expected
 
 

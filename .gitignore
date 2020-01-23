@@ -99,3 +99,7 @@ ENV/
 # End of https://www.gitignore.io/api/python
 *.sw[mnop]
 tmp/
+
+# intellij and friends
+*.iml
+.idea/

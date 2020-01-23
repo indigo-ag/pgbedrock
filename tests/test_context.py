@@ -3,6 +3,7 @@ import pytest
 from conftest import run_setup_sql
 from pgbedrock import attributes, common, context, privileges as privs, ownerships
 from pgbedrock import memberships
+from pgbedrock.context import ATTRIBUTES_TABLE_SUPERUSER
 
 
 Q_CREATE_TABLE = 'SET ROLE {}; CREATE TABLE {}.{} AS (SELECT 1+1); RESET ROLE;'
@@ -35,7 +36,7 @@ DUMMY = 'foo'
     ]
 )
 def test_get_all_current_defaults(cursor):
-    dbcontext = context.DatabaseContext(cursor, verbose=True)
+    dbcontext = context.DatabaseContext(cursor, True, ATTRIBUTES_TABLE_SUPERUSER)
     expected = {
         ROLES[0]: {
             'tables': {
@@ -64,7 +65,7 @@ def test_get_all_current_defaults(cursor):
     ('missing_role1', 'object_kind1', 'access', set()),
 ])
 def test_get_role_current_defaults(rolename, object_kind, access, expected):
-    dbcontext = context.DatabaseContext(cursor=DUMMY, verbose=True)
+    dbcontext = context.DatabaseContext(DUMMY, True, ATTRIBUTES_TABLE_SUPERUSER)
     dbcontext._cache['get_all_current_defaults'] = lambda: {
         'role1': {
             'object_kind1': {
@@ -87,7 +88,7 @@ def test_get_role_current_defaults(rolename, object_kind, access, expected):
     ('role1', common.ObjectName(DUMMY), 'objkind_does_not_exist', DUMMY, False),
 ])
 def test_has_default_privilege(rolename, schema, object_kind, access, expected):
-    dbcontext = context.DatabaseContext(cursor=DUMMY, verbose=True)
+    dbcontext = context.DatabaseContext(DUMMY, True, ATTRIBUTES_TABLE_SUPERUSER)
     dbcontext._cache['get_all_current_defaults'] = lambda: {
         'role1': {
             'tables': {
@@ -129,7 +130,7 @@ def test_has_default_privilege(rolename, schema, object_kind, access, expected):
     ]
 )
 def test_get_all_current_nondefaults(cursor):
-    dbcontext = context.DatabaseContext(cursor, verbose=True)
+    dbcontext = context.DatabaseContext(cursor, True, ATTRIBUTES_TABLE_SUPERUSER)
     expected = {
         ROLES[0]: {
             'tables': {
@@ -181,7 +182,7 @@ def test_get_all_current_nondefaults(cursor):
     ('missing_role1', 'object_kind1', 'access', set()),
 ])
 def test_get_role_current_nondefaults(rolename, object_kind, access, expected):
-    dbcontext = context.DatabaseContext(cursor=DUMMY, verbose=True)
+    dbcontext = context.DatabaseContext(DUMMY, True, ATTRIBUTES_TABLE_SUPERUSER)
     dbcontext._cache['get_all_current_nondefaults'] = lambda: {
         'role1': {
             'object_kind1': {
@@ -207,7 +208,7 @@ def test_get_role_current_nondefaults(rolename, object_kind, access, expected):
     ])),
 ])
 def test_get_role_objects_with_access(access, expected):
-    dbcontext = context.DatabaseContext(cursor=DUMMY, verbose=True)
+    dbcontext = context.DatabaseContext(DUMMY, True, ATTRIBUTES_TABLE_SUPERUSER)
     dbcontext._cache['get_all_current_nondefaults'] = lambda: {
         ROLES[0]: {
             'tables': {
@@ -248,7 +249,7 @@ def test_get_role_objects_with_access(access, expected):
         Q_CREATE_TABLE.format(ROLES[3], SCHEMAS[0], TABLES[2]),
     ])
 def test_get_all_object_attributes(cursor):
-    dbcontext = context.DatabaseContext(cursor, verbose=True)
+    dbcontext = context.DatabaseContext(cursor, True, ATTRIBUTES_TABLE_SUPERUSER)
     expected = {
         'tables': {
             SCHEMAS[0]: {
@@ -302,7 +303,7 @@ def test_get_all_object_attributes(cursor):
     [ownerships.Q_CREATE_SCHEMA.format(r, r) for r in ROLES[:3]]
 )
 def test_get_all_personal_schemas(cursor):
-    dbcontext = context.DatabaseContext(cursor, verbose=True)
+    dbcontext = context.DatabaseContext(cursor, True, ATTRIBUTES_TABLE_SUPERUSER)
     actual = dbcontext.get_all_personal_schemas()
     expected = set([common.ObjectName(schema) for schema in ROLES[1:3]])
     assert actual == expected
@@ -320,7 +321,7 @@ def test_get_all_personal_schemas(cursor):
     attributes.Q_CREATE_ROLE.format(ROLES[1]),
     ])
 def test_get_all_role_attributes(cursor):
-    dbcontext = context.DatabaseContext(cursor, verbose=True)
+    dbcontext = context.DatabaseContext(cursor, True, ATTRIBUTES_TABLE_SUPERUSER)
 
     expected = set(['test_user', 'postgres', ROLES[0], ROLES[1]])
     pg_version = dbcontext.get_version_info().postgres_version
@@ -342,7 +343,7 @@ def test_get_all_role_attributes(cursor):
 
 def test_get_role_attributes():
     expected = {'foo': 'bar'}
-    dbcontext = context.DatabaseContext(cursor=DUMMY, verbose=True)
+    dbcontext = context.DatabaseContext(DUMMY, True, ATTRIBUTES_TABLE_SUPERUSER)
     dbcontext._cache['get_all_role_attributes'] = lambda: {ROLES[0]: expected}
     actual = dbcontext.get_role_attributes(ROLES[0])
     assert actual == expected
@@ -351,7 +352,7 @@ def test_get_role_attributes():
 
 
 def test_get_role_attributes_role_does_not_exist():
-    dbcontext = context.DatabaseContext(cursor=DUMMY, verbose=True)
+    dbcontext = context.DatabaseContext(DUMMY, True, ATTRIBUTES_TABLE_SUPERUSER)
     dbcontext._cache['get_all_role_attributes'] = lambda: {}
     actual = dbcontext.get_role_attributes(ROLES[0])
     assert actual == dict()
@@ -365,7 +366,7 @@ def test_get_role_attributes_role_does_not_exist():
     ({}, False),
 ])
 def test_is_superuser(all_role_attributes, expected):
-    dbcontext = context.DatabaseContext(cursor=DUMMY, verbose=True)
+    dbcontext = context.DatabaseContext(DUMMY, True, ATTRIBUTES_TABLE_SUPERUSER)
     dbcontext._cache['get_all_role_attributes'] = lambda: all_role_attributes
     actual = dbcontext.is_superuser(ROLES[0])
     assert actual == expected
@@ -384,7 +385,7 @@ def test_is_superuser(all_role_attributes, expected):
     ownerships.Q_CREATE_SCHEMA.format(ROLES[1], ROLES[1]),
     ])
 def test_get_all_schemas_and_owners(cursor):
-    dbcontext = context.DatabaseContext(cursor, verbose=True)
+    dbcontext = context.DatabaseContext(cursor, True, ATTRIBUTES_TABLE_SUPERUSER)
     expected = {
         common.ObjectName(SCHEMAS[0]): ROLES[0],
         common.ObjectName(SCHEMAS[1]): ROLES[0],
@@ -417,7 +418,7 @@ def test_get_all_schemas_and_owners(cursor):
     memberships.Q_GRANT_MEMBERSHIP.format(ROLES[1], ROLES[2]),
 ])
 def test_get_all_memberships(cursor):
-    dbcontext = context.DatabaseContext(cursor, verbose=True)
+    dbcontext = context.DatabaseContext(cursor, True, ATTRIBUTES_TABLE_SUPERUSER)
 
     expected = set([('role1', 'role0'), ('role2', 'role1')])
     pg_version = dbcontext.get_version_info().postgres_version
@@ -442,7 +443,7 @@ def test_get_all_memberships(cursor):
 def test_get_schema_owner():
     schema = common.ObjectName('foo')
     expected_owner = 'bar'
-    dbcontext = context.DatabaseContext(cursor=DUMMY, verbose=True)
+    dbcontext = context.DatabaseContext(DUMMY, True, ATTRIBUTES_TABLE_SUPERUSER)
     dbcontext._cache['get_all_schemas_and_owners'] = lambda: {schema: expected_owner}
     actual = dbcontext.get_schema_owner(schema)
     assert actual == expected_owner
@@ -465,7 +466,7 @@ def test_get_schema_owner():
     Q_CREATE_SEQUENCE.format(ROLES[1], SCHEMAS[1], SEQUENCES[2]),
     ])
 def test_get_all_nonschema_objects_and_owners(cursor):
-    dbcontext = context.DatabaseContext(cursor, verbose=True)
+    dbcontext = context.DatabaseContext(cursor, True, ATTRIBUTES_TABLE_SUPERUSER)
     expected = {
         common.ObjectName(SCHEMAS[0]): [
             context.ObjectInfo('tables', common.ObjectName(SCHEMAS[0], TABLES[0]), ROLES[0], False),
@@ -492,7 +493,7 @@ def test_get_all_nonschema_objects_and_owners(cursor):
 def test_get_schema_objects():
     schema = common.ObjectName('foo')
     expected = 'bar'
-    dbcontext = context.DatabaseContext(cursor=DUMMY, verbose=False)
+    dbcontext = context.DatabaseContext(DUMMY, False, ATTRIBUTES_TABLE_SUPERUSER)
     dbcontext._cache['get_all_nonschema_objects_and_owners'] = lambda: {
         common.ObjectName('foo'): expected
     }
@@ -501,7 +502,7 @@ def test_get_schema_objects():
 
 
 def test_get_schema_objects_no_entry():
-    dbcontext = context.DatabaseContext(cursor=DUMMY, verbose=False)
+    dbcontext = context.DatabaseContext(DUMMY, False, ATTRIBUTES_TABLE_SUPERUSER)
     dbcontext._cache['get_all_nonschema_objects_and_owners'] = lambda: {
         common.ObjectName('foo'): 'bar',
     }
@@ -510,7 +511,7 @@ def test_get_schema_objects_no_entry():
 
 
 def test_get_all_raw_object_attributes(cursor):
-    dbcontext = context.DatabaseContext(cursor, verbose=True)
+    dbcontext = context.DatabaseContext(cursor, True, ATTRIBUTES_TABLE_SUPERUSER)
     raw_results = dbcontext.get_all_raw_object_attributes()
     assert isinstance(raw_results, list)
     assert len(raw_results) > 0
@@ -523,7 +524,7 @@ def test_get_all_raw_object_attributes(cursor):
 
 
 def test_get_version_info(cursor):
-    dbcontext = context.DatabaseContext(cursor, verbose=True)
+    dbcontext = context.DatabaseContext(cursor, True, ATTRIBUTES_TABLE_SUPERUSER)
     actual = dbcontext.get_version_info()
 
     assert isinstance(actual, context.VersionInfo)

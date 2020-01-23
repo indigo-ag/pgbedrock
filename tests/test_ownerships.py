@@ -2,7 +2,7 @@ from conftest import quoted_object, run_setup_sql
 from pgbedrock import ownerships as own
 from pgbedrock import attributes, privileges
 from pgbedrock.common import ObjectName
-from pgbedrock.context import ObjectInfo
+from pgbedrock.context import ObjectInfo, ATTRIBUTES_TABLE_SUPERUSER
 
 Q_CREATE_SEQUENCE = 'SET ROLE {}; CREATE SEQUENCE {}.{}; RESET ROLE;'
 Q_CREATE_TABLE = 'SET ROLE {}; CREATE TABLE {}.{} AS (SELECT 1+1); RESET ROLE;'
@@ -34,7 +34,7 @@ def test_analyze_ownerships_create_schemas(cursor):
             },
         },
     }
-    actual = own.analyze_ownerships(spec, cursor, verbose=False)
+    actual = own.analyze_ownerships(spec, cursor, False, ATTRIBUTES_TABLE_SUPERUSER)
 
     expected = set([
         own.Q_CREATE_SCHEMA.format(ROLES[0], ROLES[0]),
@@ -79,7 +79,7 @@ def test_analyze_ownerships_nonschemas(cursor):
             },
         },
     }
-    actual = own.analyze_ownerships(spec, cursor, verbose=False)
+    actual = own.analyze_ownerships(spec, cursor, False, ATTRIBUTES_TABLE_SUPERUSER)
 
     expected = set([
         own.Q_SET_OBJECT_OWNER.format('TABLE', quoted_object(SCHEMAS[0], TABLES[1]),
@@ -133,7 +133,7 @@ def test_analyze_ownerships_schemas_and_nonschemas(cursor):
             },
         },
     }
-    actual = own.analyze_ownerships(spec, cursor, verbose=False)
+    actual = own.analyze_ownerships(spec, cursor, False, ATTRIBUTES_TABLE_SUPERUSER)
 
     expected = set([
         own.Q_SET_OBJECT_OWNER.format('TABLE', quoted_object(SCHEMAS[0], TABLES[1]),

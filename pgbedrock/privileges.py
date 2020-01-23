@@ -196,6 +196,7 @@ class PrivilegeAnalyzer(object):
         self.schema_writers = schema_writers
         self.personal_schemas = personal_schemas
         self.default_acl_possible = self.object_kind in OBJECTS_WITH_DEFAULTS
+        self.dbcontext = dbcontext
 
         self.current_defaults = dbcontext.get_role_current_defaults(rolename, object_kind, access)
         self.current_nondefaults = dbcontext.get_role_current_nondefaults(rolename, object_kind, access)
@@ -276,9 +277,11 @@ class PrivilegeAnalyzer(object):
         return {objname for objname, attr in object_owners.items() if attr['owner'] != self.rolename}
 
     def grant_default(self, grantor, schema, privilege):
-        query = Q_GRANT_DEFAULT.format(grantor, schema.qualified_name, privilege,
-                                       self.object_kind.upper(), self.rolename)
-        self.sql_to_run.append(query)
+        if self.dbcontext.is_superuser(grantor):
+            return self.sql_to_run.append(SKIP_SUPERUSER_PRIVILEGE_CONFIGURATION_MSG.format(grantor))
+        else:
+            query = Q_GRANT_DEFAULT.format(grantor, schema.qualified_name, privilege, self.object_kind.upper(), self.rolename)
+            return self.sql_to_run.append(query)
 
     def grant_nondefault(self, objname, privilege):
         obj_kind_singular = self.object_kind.upper()[:-1]
@@ -334,9 +337,11 @@ class PrivilegeAnalyzer(object):
             self.determine_desired_defaults(schemas)
 
     def revoke_default(self, grantor, schema, privilege):
-        query = Q_REVOKE_DEFAULT.format(grantor, schema.qualified_name, privilege,
-                                        self.object_kind.upper(), self.rolename)
-        self.sql_to_run.append(query)
+        if self.dbcontext.is_superuser(grantor):
+            return self.sql_to_run.append(SKIP_SUPERUSER_PRIVILEGE_CONFIGURATION_MSG.format(grantor))
+        else:
+            query = Q_REVOKE_DEFAULT.format(grantor, schema.qualified_name, privilege, self.object_kind.upper(), self.rolename)
+            return self.sql_to_run.append(query)
 
     def revoke_nondefault(self, objname, privilege):
         obj_kind_singular = self.object_kind.upper()[:-1]

@@ -8,7 +8,7 @@ import pytest
 from conftest import run_setup_sql
 from pgbedrock import attributes as attr
 from pgbedrock.common import ObjectName
-from pgbedrock.context import DatabaseContext
+from pgbedrock.context import DatabaseContext, ATTRIBUTES_TABLE_SUPERUSER
 from pgbedrock import core_generate
 from pgbedrock import ownerships as own
 from pgbedrock import privileges as privs
@@ -29,7 +29,7 @@ VALID_FOREVER_VALUES = (
     "CREATE ROLE bar WITH SUPERUSER PASSWORD 'supersecret' VALID UNTIL '2018-06-05'",
 ])
 def test_add_attributes(cursor):
-    dbcontext = DatabaseContext(cursor, verbose=True)
+    dbcontext = DatabaseContext(cursor, True, ATTRIBUTES_TABLE_SUPERUSER)
     expected = {
         'foo': {
             'can_login': True,
@@ -301,7 +301,7 @@ def test_add_ownerships(mockdbcontext):
     ),
 ])
 def test_collapse_personal_schemas(cursor, objects, expected):
-    dbcontext = DatabaseContext(cursor, verbose=True)
+    dbcontext = DatabaseContext(cursor, True, ATTRIBUTES_TABLE_SUPERUSER)
     actual = core_generate.collapse_personal_schemas(role='role0', objects=objects,
                                                      objkind='tables', dbcontext=dbcontext)
     assert actual == expected
@@ -339,7 +339,7 @@ def test_collapse_personal_schemas(cursor, objects, expected):
     ),
 ])
 def test_collapse_personal_schemas_only_logginable_roles(cursor, objects, expected):
-    dbcontext = DatabaseContext(cursor, verbose=True)
+    dbcontext = DatabaseContext(cursor, True, ATTRIBUTES_TABLE_SUPERUSER)
     actual = core_generate.collapse_personal_schemas(role='role0', objects=objects,
                                                      objkind='tables', dbcontext=dbcontext)
     assert actual == expected
@@ -347,7 +347,7 @@ def test_collapse_personal_schemas_only_logginable_roles(cursor, objects, expect
 
 def test_collapse_personal_schemas_no_personal_schemas_exist(cursor):
     objects = set([ObjectName('role1', '*'), ObjectName('role2', 'foo'), ObjectName('role3', 'bar')])
-    dbcontext = DatabaseContext(cursor, verbose=True)
+    dbcontext = DatabaseContext(cursor, True, ATTRIBUTES_TABLE_SUPERUSER)
     actual = core_generate.collapse_personal_schemas(role='role0', objects=objects,
                                                      objkind='tables', dbcontext=dbcontext)
     assert actual == objects
@@ -369,7 +369,7 @@ def test_collapse_personal_schemas_no_personal_schemas_exist(cursor):
     own.Q_CREATE_SCHEMA.format('role2', 'role2'),
 ])
 def test_collapse_personal_schemas_empty_schema_with_default_priv(cursor):
-    dbcontext = DatabaseContext(cursor, verbose=True)
+    dbcontext = DatabaseContext(cursor, True, ATTRIBUTES_TABLE_SUPERUSER)
     objects = set([ObjectName('role1', '*'), ObjectName('role2', '*')])
     actual = core_generate.collapse_personal_schemas(role='role0', objects=objects,
                                                      objkind='tables', dbcontext=dbcontext)
@@ -399,7 +399,7 @@ def test_collapse_personal_schemas_empty_schema_with_default_priv(cursor):
 ])
 def test_add_privileges(cursor):
     spec = {'role0': {}}
-    dbcontext = DatabaseContext(cursor, verbose=True)
+    dbcontext = DatabaseContext(cursor, True, ATTRIBUTES_TABLE_SUPERUSER)
     actual = core_generate.add_privileges(spec, dbcontext)
     expected = {
         'role0': {
@@ -441,7 +441,7 @@ def test_add_privileges(cursor):
     privs.Q_GRANT_NONDEFAULT.format('CREATE', 'SCHEMA', 'schema3', 'role0'),
 ])
 def test_determine_schema_privileges_both_read_and_write_no_personal_schemas(cursor):
-    dbcontext = DatabaseContext(cursor, verbose=True)
+    dbcontext = DatabaseContext(cursor, True, ATTRIBUTES_TABLE_SUPERUSER)
     actual = core_generate.determine_schema_privileges('role0', dbcontext)
     expected = {
         'write': set([ObjectName('schema2'), ObjectName('schema3')]),
@@ -455,7 +455,7 @@ def test_determine_schema_privileges_both_read_and_write_no_personal_schemas(cur
     attr.Q_CREATE_ROLE.format('role0'),
 ])
 def test_determine_schema_privileges_nothing_returns(cursor):
-    dbcontext = DatabaseContext(cursor, verbose=True)
+    dbcontext = DatabaseContext(cursor, True, ATTRIBUTES_TABLE_SUPERUSER)
     actual = core_generate.determine_schema_privileges('role0', dbcontext)
     assert actual == {}
 
@@ -472,7 +472,7 @@ def test_determine_schema_privileges_nothing_returns(cursor):
 
 ])
 def test_determine_schema_privileges_only_read_exists(cursor):
-    dbcontext = DatabaseContext(cursor, verbose=True)
+    dbcontext = DatabaseContext(cursor, True, ATTRIBUTES_TABLE_SUPERUSER)
     actual = core_generate.determine_schema_privileges('role0', dbcontext)
     expected = {
         'read': set([ObjectName('schema0')]),
@@ -512,7 +512,7 @@ def test_determine_schema_privileges_personal_schemas(cursor):
         schema0 - read - should be in 'read'
         schema1 - write - should be in 'write'
     """
-    dbcontext = DatabaseContext(cursor, verbose=True)
+    dbcontext = DatabaseContext(cursor, True, ATTRIBUTES_TABLE_SUPERUSER)
     actual = core_generate.determine_schema_privileges('role0', dbcontext)
     expected = {
         'write': set([ObjectName('schema1')]),
@@ -535,7 +535,7 @@ def test_determine_schema_privileges_personal_schemas(cursor):
 
 ])
 def test_determine_schema_privileges_only_write_exists(cursor):
-    dbcontext = DatabaseContext(cursor, verbose=True)
+    dbcontext = DatabaseContext(cursor, True, ATTRIBUTES_TABLE_SUPERUSER)
     actual = core_generate.determine_schema_privileges('role0', dbcontext)
     expected = {
         'write': set([ObjectName('schema0'), ObjectName('schema1')]),
@@ -552,7 +552,7 @@ def test_determine_schema_privileges_only_write_exists(cursor):
     own.Q_CREATE_SCHEMA.format('role0', 'role0'),
 ])
 def test_determine_schema_privileges_has_personal_schema(cursor):
-    dbcontext = DatabaseContext(cursor, verbose=True)
+    dbcontext = DatabaseContext(cursor, True, ATTRIBUTES_TABLE_SUPERUSER)
     actual = core_generate.determine_schema_privileges('role0', dbcontext)
     assert actual == {}
 
@@ -569,7 +569,7 @@ def test_determine_schema_privileges_has_personal_schema(cursor):
     privs.Q_GRANT_DEFAULT.format('role1', 'schema0', 'SELECT', 'TABLES', 'role0'),
 ])
 def test_determine_nonschema_privileges_for_schema_no_objects_with_default_priv(cursor):
-    dbcontext = DatabaseContext(cursor, verbose=True)
+    dbcontext = DatabaseContext(cursor, True, ATTRIBUTES_TABLE_SUPERUSER)
     actw, actr = core_generate.determine_nonschema_privileges_for_schema('role0', 'tables',
                                                                          ObjectName('schema0'),
                                                                          dbcontext)
@@ -586,7 +586,7 @@ def test_determine_nonschema_privileges_for_schema_no_objects_with_default_priv(
     own.Q_CREATE_SCHEMA.format('schema0', 'role1'),
 ])
 def test_determine_nonschema_privileges_for_schema_no_objects(cursor):
-    dbcontext = DatabaseContext(cursor, verbose=True)
+    dbcontext = DatabaseContext(cursor, True, ATTRIBUTES_TABLE_SUPERUSER)
     actw, actr = core_generate.determine_nonschema_privileges_for_schema('role0', 'tables',
                                                                          ObjectName('schema0'),
                                                                          dbcontext)
@@ -609,7 +609,7 @@ def test_determine_nonschema_privileges_for_schema_no_objects(cursor):
     privs.Q_GRANT_DEFAULT.format('role1', 'schema0', 'UPDATE', 'TABLES', 'role0'),
 ])
 def test_determine_nonschema_privileges_for_schema_default_write(cursor):
-    dbcontext = DatabaseContext(cursor, verbose=True)
+    dbcontext = DatabaseContext(cursor, True, ATTRIBUTES_TABLE_SUPERUSER)
     actw, actr = core_generate.determine_nonschema_privileges_for_schema('role0', 'tables',
                                                                          ObjectName('schema0'),
                                                                          dbcontext)
@@ -632,7 +632,7 @@ def test_determine_nonschema_privileges_for_schema_default_write(cursor):
     privs.Q_GRANT_NONDEFAULT.format('DELETE', 'TABLE', 'schema0.table1', 'role0'),
 ])
 def test_determine_nonschema_privileges_for_schema_has_all_writes(cursor):
-    dbcontext = DatabaseContext(cursor, verbose=True)
+    dbcontext = DatabaseContext(cursor, True, ATTRIBUTES_TABLE_SUPERUSER)
     actw, actr = core_generate.determine_nonschema_privileges_for_schema('role0', 'tables',
                                                                          ObjectName('schema0'),
                                                                          dbcontext)
@@ -657,7 +657,7 @@ def test_determine_nonschema_privileges_for_schema_has_all_writes(cursor):
     privs.Q_GRANT_DEFAULT.format('role1', 'schema0', 'SELECT', 'TABLES', 'role0'),
 ])
 def test_determine_nonschema_privileges_for_schema_some_write_default_read(cursor):
-    dbcontext = DatabaseContext(cursor, verbose=True)
+    dbcontext = DatabaseContext(cursor, True, ATTRIBUTES_TABLE_SUPERUSER)
     actw, actr = core_generate.determine_nonschema_privileges_for_schema('role0', 'tables',
                                                                          ObjectName('schema0'),
                                                                          dbcontext)
@@ -680,7 +680,7 @@ def test_determine_nonschema_privileges_for_schema_some_write_default_read(curso
     privs.Q_GRANT_NONDEFAULT.format('SELECT', 'TABLE', 'schema0.table1', 'role0'),
 ])
 def test_determine_nonschema_privileges_for_schema_no_writes_all_reads(cursor):
-    dbcontext = DatabaseContext(cursor, verbose=True)
+    dbcontext = DatabaseContext(cursor, True, ATTRIBUTES_TABLE_SUPERUSER)
     actw, actr = core_generate.determine_nonschema_privileges_for_schema('role0', 'tables',
                                                                          ObjectName('schema0'),
                                                                          dbcontext)
@@ -707,7 +707,7 @@ def test_determine_nonschema_privileges_for_schema_no_writes_all_reads(cursor):
     privs.Q_GRANT_NONDEFAULT.format('UPDATE', 'TABLE', 'schema0.table2', 'role0'),
 ])
 def test_determine_nonschema_privileges_for_schema_some_writes_some_reads(cursor):
-    dbcontext = DatabaseContext(cursor, verbose=True)
+    dbcontext = DatabaseContext(cursor, True, ATTRIBUTES_TABLE_SUPERUSER)
     actw, actr = core_generate.determine_nonschema_privileges_for_schema('role0', 'tables',
                                                                          ObjectName('schema0'),
                                                                          dbcontext)
@@ -735,7 +735,7 @@ def test_determine_nonschema_privileges_for_schema_some_writes_some_reads(cursor
     privs.Q_GRANT_NONDEFAULT.format('UPDATE', 'TABLE', 'schema0.table2', 'role0'),
 ])
 def test_determine_nonschema_privileges_for_schema_all_writes(cursor):
-    dbcontext = DatabaseContext(cursor, verbose=True)
+    dbcontext = DatabaseContext(cursor, True, ATTRIBUTES_TABLE_SUPERUSER)
     actw, actr = core_generate.determine_nonschema_privileges_for_schema('role0', 'tables',
                                                                          ObjectName('schema0'),
                                                                          dbcontext)
@@ -760,7 +760,7 @@ def test_determine_nonschema_privileges_for_schema_all_writes(cursor):
     privs.Q_GRANT_NONDEFAULT.format('SELECT', 'TABLE', 'schema0.table0', 'role0'),
 ])
 def test_determine_nonschema_privileges_for_schema_default_write_some_reads(cursor):
-    dbcontext = DatabaseContext(cursor, verbose=True)
+    dbcontext = DatabaseContext(cursor, True, ATTRIBUTES_TABLE_SUPERUSER)
     actw, actr = core_generate.determine_nonschema_privileges_for_schema('role0', 'tables',
                                                                          ObjectName('schema0'),
                                                                          dbcontext)
@@ -781,7 +781,7 @@ def test_determine_nonschema_privileges_for_schema_default_write_some_reads(curs
     privs.Q_GRANT_DEFAULT.format('role1', 'schema0', 'SELECT', 'TABLES', 'role0'),
 ])
 def test_determine_nonschema_privileges_for_schema_default_write_and_default_read(cursor):
-    dbcontext = DatabaseContext(cursor, verbose=True)
+    dbcontext = DatabaseContext(cursor, True, ATTRIBUTES_TABLE_SUPERUSER)
     actw, actr = core_generate.determine_nonschema_privileges_for_schema('role0', 'tables',
                                                                          ObjectName('schema0'),
                                                                          dbcontext)
@@ -804,7 +804,7 @@ def test_determine_nonschema_privileges_for_schema_default_write_and_default_rea
     privs.Q_GRANT_NONDEFAULT.format('SELECT', 'TABLE', 'schema0.table1', 'role0'),
 ])
 def test_determine_nonschema_privileges_for_schema_no_write_all_reads(cursor):
-    dbcontext = DatabaseContext(cursor, verbose=True)
+    dbcontext = DatabaseContext(cursor, True, ATTRIBUTES_TABLE_SUPERUSER)
     actw, actr = core_generate.determine_nonschema_privileges_for_schema('role0', 'tables',
                                                                          ObjectName('schema0'),
                                                                          dbcontext)
@@ -826,7 +826,7 @@ def test_determine_nonschema_privileges_for_schema_no_write_all_reads(cursor):
     privs.Q_GRANT_NONDEFAULT.format('SELECT', 'TABLE', 'schema0.table0', 'role0'),
 ])
 def test_determine_nonschema_privileges_for_schema_no_writes_some_reads(cursor):
-    dbcontext = DatabaseContext(cursor, verbose=True)
+    dbcontext = DatabaseContext(cursor, True, ATTRIBUTES_TABLE_SUPERUSER)
     actw, actr = core_generate.determine_nonschema_privileges_for_schema('role0', 'tables',
                                                                          ObjectName('schema0'),
                                                                          dbcontext)
@@ -847,7 +847,7 @@ def test_determine_nonschema_privileges_for_schema_no_writes_some_reads(cursor):
     Q_CREATE_SEQUENCE.format('role1', 'schema0', 'sequence0')
 ])
 def test_determine_nonschema_privileges_for_schema_no_objects_of_objkind(cursor):
-    dbcontext = DatabaseContext(cursor, verbose=True)
+    dbcontext = DatabaseContext(cursor, True, ATTRIBUTES_TABLE_SUPERUSER)
     actw, actr = core_generate.determine_nonschema_privileges_for_schema('role0', 'tables',
                                                                          ObjectName('schema0'),
                                                                          dbcontext)
@@ -882,7 +882,7 @@ def test_determine_nonschema_privileges_for_schema_no_objects_of_objkind(cursor)
     Q_CREATE_TABLE.format('role0', 'role0', 'table0'),
 ])
 def test_determine_all_nonschema_privileges(cursor):
-    dbcontext = DatabaseContext(cursor, verbose=True)
+    dbcontext = DatabaseContext(cursor, True, ATTRIBUTES_TABLE_SUPERUSER)
     actw, actr = core_generate.determine_all_nonschema_privileges('role0', 'tables', dbcontext)
     assert actw == set([ObjectName('schema0', '*')])
     assert actr == set([ObjectName('schema1', 'table3')])
