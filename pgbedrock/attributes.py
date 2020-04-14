@@ -54,9 +54,9 @@ PG_COLUMN_NAME = {
 COLUMN_NAME_TO_KEYWORD = {v: k for k, v in PG_COLUMN_NAME.items()}
 
 
-def analyze_attributes(spec, cursor, verbose):
+def analyze_attributes(spec, cursor, verbose, attributes_source_table):
     logger.debug('Starting analyze_attributes()')
-    dbcontext = DatabaseContext(cursor, verbose)
+    dbcontext = DatabaseContext(cursor, verbose, attributes_source_table)
 
     # We disable the progress bar when showing verbose output (using '' as our bar_template)
     # or # the bar will get lost in the # output
@@ -109,6 +109,7 @@ class AttributeAnalyzer(object):
         self.spec_attributes = spec_attributes
 
         self.current_attributes = dbcontext.get_role_attributes(rolename)
+        self.manage_passwords = dbcontext.manage_passwords
 
         # We keep track of password-related SQL separately as we don't want running this to
         # go into the main SQL stream since that could leak password
@@ -211,8 +212,13 @@ class AttributeAnalyzer(object):
         for attribute, desired_value in attributes.items():
             current_value = self.get_attribute_value(attribute)
             if attribute == 'rolpassword' and not self.is_same_password(desired_value):
-                logger.debug('Altering password for role "{}"'.format(self.rolename))
-                self.set_password(desired_value)
+                # we don't manage password values if we can't reliably read them from the attribute table
+                if self.manage_passwords:
+                    logger.debug('Altering password for role "{}"'.format(self.rolename))
+                    self.set_password(desired_value)
+                else:
+                    logger.debug('Skipping password management for role "{}"'.format(self.rolename))
+                    continue
 
             if attribute == 'rolvaliduntil' \
                and is_valid_forever(desired_value) \

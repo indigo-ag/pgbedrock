@@ -13,6 +13,7 @@ import yaml
 from conftest import quoted_object, run_setup_sql
 from pgbedrock import privileges as privs, attributes, ownerships, spec_inspector
 from pgbedrock.common import ObjectName
+from pgbedrock.context import ATTRIBUTES_TABLE_SUPERUSER
 
 
 Q_CREATE_TABLE = 'SET ROLE {}; CREATE TABLE {}.{} AS (SELECT 1+1); RESET ROLE;'
@@ -221,7 +222,7 @@ def test_analyze_privileges(cursor):
     ])
 
     expected = expected_role0_changes.union(expected_role1_changes).union(expected_role2_changes).union(expected_role4_changes)
-    all_sql_to_run = privs.analyze_privileges(desired_spec, cursor, verbose=False)
+    all_sql_to_run = privs.analyze_privileges(desired_spec, cursor, False, ATTRIBUTES_TABLE_SUPERUSER)
     actual = set(all_sql_to_run)
     expected_but_not_actual = expected.difference(actual)
     actual_but_not_expected = actual.difference(expected)
@@ -246,7 +247,7 @@ def test_analyze_privileges_skips_superuser(cursor):
                         - baz.bip
     """.format(role0=ROLES[0]))
 
-    actual = privs.analyze_privileges(desired_spec, cursor, verbose=False)
+    actual = privs.analyze_privileges(desired_spec, cursor, False, ATTRIBUTES_TABLE_SUPERUSER)
     expected = [privs.SKIP_SUPERUSER_PRIVILEGE_CONFIGURATION_MSG.format(ROLES[0])]
     assert actual == expected
 
